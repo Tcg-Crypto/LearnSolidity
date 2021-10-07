@@ -49,6 +49,12 @@ contract multisigwallet {
         _;
     }
 
+
+    modifier txConfirmed(uint _txIndex){
+        require(isConfirmed[_txIndex][msg.sender],"tx already confirmed");
+        _;
+    }
+
     constructor(address[] memory _owners, uint _numConfirmationsRequired){
         require(_owners.length > 0,"owners required");
         require(
@@ -98,6 +104,15 @@ contract multisigwallet {
 
     }
 
+    function revokeTX(uint _txIndex)public onlyOwner txExists(_txIndex) notExecuted(_txIndex) txConfirmed(_txIndex){
+        txstruct storage transaction = transactions[_txIndex];
+        transaction.numConfirmations -=1;
+        isConfirmed[_txIndex][msg.sender] = false;
+
+        emit RevokeTX(msg.sender, _txIndex);
+
+    }
+
     function executeTX(uint _txIndex)public onlyOwner txExists(_txIndex) notExecuted(_txIndex){
         txstruct storage transaction = transactions[_txIndex];
 
@@ -115,8 +130,13 @@ contract multisigwallet {
 
     }
 
-        function getOwners() public view returns (address[] memory) {
+    function getOwners() public view returns (address[] memory) {
         return owners;
-    }
+    } 
+
+    function getConfirmations(uint _txIndex)public view returns(uint confirmations){
+        txstruct storage transaction = transactions[_txIndex];
+        return transaction.numConfirmations;
+    }  
 
 }
